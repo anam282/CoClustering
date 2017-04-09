@@ -46,9 +46,7 @@ public class BimaxCluster {
     }
 
     private int columnCount(BitSet row) {
-//        System.out.println("column count");
-//        System.out.println(row.toString());
-//        System.out.println(row.cardinality());
+
         return row.cardinality();
     }
 
@@ -68,35 +66,27 @@ public class BimaxCluster {
 
         if (sharedColumns.cardinality() != 0)
             disjoint = 0;
-//        System.out.println("compare columns");
-//        System.out.println("\nrow1: " + row1.toString());
-//        System.out.println("row2: " + row2.toString());
-//        System.out.println("mask: " + mask.toString());
         if (contained > 0 && disjoint > 0)
             output = -2;
         if (contained > 0)
             output = -1;
         if (disjoint > 0)
             output = 1;
-//        System.out.println("output :" + output);
         return output;
     }
 
     private BitSet copyColumnSet(BitSet row1, Boolean copyMode) {
         BitSet row2 = (BitSet) row1.clone();
-        if (!copyMode) {
+        if (copyMode) {
             row2.flip(0, noProperties);
         }
         return row2;
     }
 
     private BitSet intersectColumnSets(BitSet row1, BitSet row2) {
-//        System.out.println("intersect");
-//        System.out.println(row1.toString());
-//        System.out.println(row2.toString());
+
         BitSet dest = (BitSet) row1.clone();
         dest.and(row2);
-//        System.out.println(dest.toString());
         return dest;
     }
 
@@ -115,9 +105,9 @@ public class BimaxCluster {
     private boolean containsMandatoryColumns(BitSet row, int noMandatorySets) {
 
         for (int i = 0; i < noMandatorySets; i++) {
-            BitSet mandatory = (BitSet) row.clone();
-            mandatory.and(matrix.get(i).getRow());
-            if (mandatory.cardinality() == 0) return false;
+            BitSet mandatoryColumn = (BitSet) row.clone();
+            mandatoryColumn.and(mandatoryColumns.get(i));
+            if (mandatoryColumn.cardinality() == 0) return false;
         }
 
         return true;
@@ -125,7 +115,7 @@ public class BimaxCluster {
     }
 
     private void swapRows(int a, int b) {
-        if (a >= 0 && a < noSubjects && b >= 0 && b < noSubjects) {
+        if (a!= b && a >= 0 && a < noSubjects && b >= 0 && b < noSubjects) {
             Matrix temp = matrix.get(a);
             matrix.set(a, matrix.get(b));
             matrix.set(b, temp);
@@ -135,12 +125,10 @@ public class BimaxCluster {
     private int chooseSplitRow(int firstRow, int lastRow, int level) {
 
         int i = firstRow;
-//        System.out.println("split start");
         for (; i <= lastRow &&
                 compareColumns(matrix.get(i).getRow(), consideredColumns.get(level), consideredColumns.get(0)) < 0;
              i++)
             ;
-//        System.out.println("split end");
         if (i <= lastRow)
             return i;
         return firstRow;
@@ -152,11 +140,7 @@ public class BimaxCluster {
         int selected = 0;
         int overlapping = 0;
         while (firstRow <= lastRow) {
-//            System.out.println("switch : " + compareColumns(consideredColumns.get(level), matrix.get(firstRow).getRow(), consideredColumns.get(level - 1)));
-//            System.out.println("firstrow : " + matrix.get(firstRow).getRow().toString());
-//            System.out.println("cc level : " + consideredColumns.get(level).toString());
-//            System.out.println("cc level-1 : " + consideredColumns.get(level-1).toString());
-//            System.out.println("select Rows");
+
             switch (compareColumns(consideredColumns.get(level), matrix.get(firstRow).getRow(), consideredColumns.get(level - 1))) {
                 case -2:
                 case 1:
@@ -178,9 +162,6 @@ public class BimaxCluster {
 
     private void writeBicluster(int firstRow, int lastRow, BitSet columnSet) {
 
-//        if(biclusterCounter == 20) {
-//            System.exit(0);
-//        }
         System.out.println("cluster number =" + ++biclusterCounter);
         List<Integer> subjects = new ArrayList<>();
         for (int i = firstRow; i <= lastRow; i++) {
@@ -194,17 +175,11 @@ public class BimaxCluster {
 
     private void conquer(int firstRow, int lastRow, int level, int noMandatorySets) {
 
-//        System.out.println("mandatory sets =" + noMandatorySets);
-        System.out.println("first= " + firstRow + " last= " + lastRow);
-        System.out.println("level =" + level);
-//        System.out.println();
         int noSelectedRows;
         int overlapping = 0;
         Map<Integer, Integer> values;
         BitSet columnIntersection = determineColumnsInCommon(firstRow, lastRow);
-//        System.out.println("considered columns");
-//        System.out.println(consideredColumns.toString());
-//        System.out.println("column intersection");
+
         if (compareColumns(columnIntersection,
                 consideredColumns.get(level),
                 consideredColumns.get(level)) == -1) {
@@ -214,10 +189,6 @@ public class BimaxCluster {
         } else {
 
             int splitRow = chooseSplitRow(firstRow, lastRow, level);
-//            System.out.println("Check value" + intersectColumnSets(consideredColumns.get(level),
-//                    matrix.get(splitRow).getRow()).toString() + " level: " + level);
-//            System.out.println("matrix splitrow= " + matrix.get(splitRow).getRow().toString());
-//            System.out.println("ccl: " + consideredColumns.get(level));
             consideredColumns.set(level + 1,
                     intersectColumnSets(consideredColumns.get(level),
                             matrix.get(splitRow).getRow()));
@@ -229,25 +200,21 @@ public class BimaxCluster {
                 noSelectedRows = values.get(1);
                 overlapping = values.get(2);
                 if (noSelectedRows >= minSubjects) {
-                    //int l = firstRow + noSelectedRows - 1;
-                    //System.out.println("1. first= " + firstRow + " firstRow + noslected -1 = " + l);
                     conquer(firstRow, firstRow + noSelectedRows - 1, level + 1, noMandatorySets);
                 }
             }
 
-            consideredColumns.set(level + 1, copyColumnSet(consideredColumns.get(level + 1), false));
+            consideredColumns.set(level + 1, copyColumnSet(consideredColumns.get(level + 1), true));
             consideredColumns.set(level + 1, intersectColumnSets(consideredColumns.get(level), consideredColumns.get(level + 1)));
 
             if (overlapping > 0) {
-                mandatoryColumns.set(noMandatorySets, copyColumnSet(consideredColumns.get(level + 1), true));
+                mandatoryColumns.set(noMandatorySets, copyColumnSet(consideredColumns.get(level + 1), false));
                 noMandatorySets++;
             }
             values = selectRows(firstRow, lastRow, level + 1);
             noSelectedRows = values.get(1);
-            consideredColumns.set(level + 1, copyColumnSet(consideredColumns.get(level), true));
+            consideredColumns.set(level + 1, copyColumnSet(consideredColumns.get(level), false));
             if (noSelectedRows >= minSubjects) {
-                //int l = firstRow + noSelectedRows - 1;
-                //System.out.println("2. first= " + firstRow + " firstrow + noslected -1 = " + l);
                 conquer(firstRow, firstRow + noSelectedRows - 1, level + 1, noMandatorySets);
             }
         }
@@ -255,8 +222,6 @@ public class BimaxCluster {
 
     public void runBimax() {
         conquer(0, noSubjects - 1, 0, 0);
-//        System.out.println(consideredColumns.toString());
-
     }
 
     public Set<BitSet> getAllSchemas(){
