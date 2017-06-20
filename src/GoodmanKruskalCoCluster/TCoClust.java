@@ -19,7 +19,8 @@ public class TCoClust {
     List<Integer> contingencyRows;
     List<Integer> contingencyColumns;
     int contingencyTotal;
-    double minError;
+    double minErrorRow;
+    double minErrorColumn;
 
     public TCoClust(List<BitSet> dataMatrix, int numOfIter, int numRows, int numColumns) {
         this.dataMatrix = dataMatrix;
@@ -34,10 +35,11 @@ public class TCoClust {
         this.contingencyTotal = 0;
         initializeClusters();
         this.contingency = calculateContingencyTable(rowClusters, columnClusters);
-        this.contingencyRows = calculateContingencyRows();
-        this.contingencyColumns = calculateContingencyCols();
+        this.contingencyRows = calculateContingencyRows(contingency);
+        this.contingencyColumns = calculateContingencyCols(contingency);
         calculateContingencyTotal();
-        this.minError = goodmanKruskal(contingencyRows, contingencyColumns, contingency);
+        this.minErrorRow = goodmanKruskalRow();
+        this.minErrorColumn = goodmanKruskalColumn();
     }
 
     public void initializeClusters() {
@@ -45,38 +47,53 @@ public class TCoClust {
         rowClusters.add(row);
         BitSet cloneRow = (BitSet) row.clone();
         cloneRow.flip(0, numColumns);
-        rowClusters.add(cloneRow);
+        if(cloneRow.cardinality() > 0){
+            rowClusters.add(cloneRow);
+        }
 
         BitSet column = new BitSet();
-        for(int i=0 ; i < numRows; i++) {
-            if(dataMatrix.get(0).get(0)) {
+        for (int i = 0; i < numRows; i++) {
+            if (dataMatrix.get(i).get(0)) {
                 column.set(i);
             }
         }
 
+        columnClusters.add(column);
         BitSet cloneColumn = (BitSet) column.clone();
         cloneColumn.flip(0, numRows);
-        columnClusters.add(column);
-        columnClusters.add(cloneColumn);
+        if(cloneColumn.cardinality() > 0) {
+            columnClusters.add(cloneColumn);
+        }
+
+
+        //System.out.println("initial row cluster: " + rowClusters.toString());
+        //System.out.println("initial col cluster: " + columnClusters.toString());
     }
 
     public List<List<Integer>> calculateContingencyTable(List<BitSet> rowClusters, List<BitSet> colClusters) {
 
         List<List<Integer>> newContingency = new ArrayList<>();
-        for(int i=0; i< rowClusters.size(); i++) {
+        for (int i = 0; i < rowClusters.size(); i++) {
             newContingency.add(new ArrayList<Integer>());
         }
 
         int r = 0;
         //int c = 0;
-        for(BitSet rowCluster : rowClusters) {
-            for(BitSet colCluster : colClusters) {
+        for (BitSet rowCluster : rowClusters) {
+            for (BitSet colCluster : colClusters) {
                 int sum = 0;
-                for(int i=rowCluster.nextSetBit(0); i!= -1; i = rowCluster.nextSetBit(i+1)) {
-                    for(int j = colCluster.nextSetBit(0); j != -1; j = colCluster.nextSetBit(j+1)) {
-                        sum++;
+//                boolean and = true;
+//                boolean or = false;
+                for (int i = rowCluster.nextSetBit(0); i != -1; i = rowCluster.nextSetBit(i + 1)) {
+                    for (int j = colCluster.nextSetBit(0); j != -1; j = colCluster.nextSetBit(j + 1)) {
+//                        and &= dataMatrix.get(i).get(j);
+//                        or |= dataMatrix.get(i).get(j);
+                        if(dataMatrix.get(i).get(j)) {
+                            sum++;
+                        }
                     }
                 }
+                //if(and && or || !and && !or ) sum = 1;
                 newContingency.get(r).add(sum);
             }
             r++;
@@ -84,34 +101,94 @@ public class TCoClust {
         return newContingency;
     }
 
-    public List<Integer> calculateContingencyRows() {
+    public List<Integer> calculateContingencyRows(List<List<Integer>> contingency) {
 
         List<Integer> newContingencyRows = new ArrayList<>();
-        for(int i=0; i < contingency.size(); i++) {
+        for (int i = 0; i < contingency.size(); i++) {
             int rowSum = 0;
-            for(int j=0; j < contingency.get(i).size(); j++) {
+            for (int j = 0; j < contingency.get(i).size(); j++) {
                 rowSum += contingency.get(i).get(j);
             }
             newContingencyRows.add(rowSum);
         }
+        //System.out.println(newContingencyRows.toString());
         return newContingencyRows;
     }
 
-    public void calculateContingencyTotal() {
-         for(BitSet row: dataMatrix) {
-             contingencyTotal += row.cardinality();
-         }
+    public void updatePartition(List<Integer> partitions, BitSet object, int fromPartitionNum, int toPartitionNum) {
+        if(fromPartitionNum < partitions.size() && toPartitionNum < partitions.size()) {
+            partitions.set(toPartitionNum, partitions.get(toPartitionNum) + object.cardinality());
+            partitions.set(fromPartitionNum, partitions.get(fromPartitionNum) - object.cardinality());
+        }
+        //System.out.println(partitions.toString());
     }
 
-    public List<Integer> calculateContingencyCols() {
+    public int addNewRowCluster(){
+        rowClusters.add(new BitSet());
+        contingencyRows.add(0);
+        List<Integer> list = new ArrayList<>();
+        for(int i=0; i<contingencyColumns.size(); i++) {
+            list.add(0);
+        }
+        contingency.add(list);
+        return rowClusters.size()-1;
+    }
+
+    public int addNewColCluster(){
+        columnClusters.add(new BitSet());
+        contingencyColumns.add(0);
+        for(int i=0; i<contingencyRows.size(); i++){
+            contingency.get(i).add(0);
+        }
+
+        return columnClusters.size()-1;
+    }
+
+    public void removeEmptyRowCluster(int clNum) {
+        rowClusters.remove(clNum);
+        contingencyRows.remove(clNum);
+        contingency.remove(clNum);
+    }
+
+    public void removeEmptyColumnCluster(int clNum) {
+        columnClusters.remove(clNum);
+        contingencyColumns.remove(clNum);
+        for(int i=0; i<contingencyRows.size(); i++) {
+            contingency.get(i).remove(clNum);
+        }
+    }
+
+    public void updateContingencyTable(BitSet object, List<BitSet> partitions, int fromPartitionNum, int toPartitionNum, boolean isRowPartition) {
+        int i = 0;
+        for (BitSet partition : partitions) {
+            BitSet objectClone = (BitSet) object.clone();
+            objectClone.and(partition);
+            int num = objectClone.cardinality();
+            if (isRowPartition) {
+                contingency.get(fromPartitionNum).add(i, contingency.get(fromPartitionNum).get(i) - num);
+                contingency.get(toPartitionNum).add(i, contingency.get(toPartitionNum).get(i) + num);
+            } else {
+                contingency.get(i).add(fromPartitionNum, contingency.get(i).get(fromPartitionNum) - num);
+                contingency.get(i).add(toPartitionNum, contingency.get(i).get(toPartitionNum) + num);
+            }
+        }
+    }
+
+    public void calculateContingencyTotal() {
+        for (BitSet row : dataMatrix) {
+            contingencyTotal += row.cardinality();
+        }
+    }
+
+    public List<Integer> calculateContingencyCols(List<List<Integer>> contingency) {
 
         List<Integer> newContingencyCols = new ArrayList<Integer>();
-        for(int i=0; i < contingency.size(); i++) {
-            for(int j=0; j < contingency.get(i).size(); j++) {
-                if(newContingencyCols.size() < j+1) {
+        for (int i = 0; i < contingency.size(); i++) {
+            for (int j = 0; j < contingency.get(i).size(); j++) {
+                if (newContingencyCols.size() < j + 1) {
                     newContingencyCols.add(0);
                 }
-                newContingencyCols.set(j, newContingencyCols.get(j)+contingency.get(i).get(j));
+                newContingencyCols.set(j, newContingencyCols.get(j) + contingency.get(i).get(j));
             }
         }
 
@@ -121,72 +198,172 @@ public class TCoClust {
     public void runCoClust() {
         int t = 0;
 
-        while(t <= numOfIter) {
-            optimizePartition(rowClusters, columnClusters, true);
-            optimizePartition(columnClusters, rowClusters, false);
+        while (t <= numOfIter) {
+            optimizePartition(rowClusters, true);
+            optimizePartition(columnClusters, false);
             t++;
         }
     }
 
-    public void optimizePartition(List<BitSet> U, List<BitSet> V, boolean isRowPartition) {
-        Random rand = new Random();
-        int len = U.size();
+    public int optimizeRowPartition(int i, int cluster, int object, int optimalCluster) {
 
+        int opt = optimalCluster;
+        updateContingencyTable(dataMatrix.get(object), rowClusters, cluster, i, true);
+        updatePartition(contingencyRows, dataMatrix.get(object), cluster, i);
+        double newError = goodmanKruskal(contingencyRows, contingencyColumns, contingency);
+        if (newError < minErrorRow) {
+            minErrorRow = newError;
+            opt = i;
+            rowClusters.get(i).clear(object);
+            updateContingencyTable(dataMatrix.get(object), rowClusters, i, cluster, true);
+            updatePartition(contingencyRows, dataMatrix.get(object), cluster, i);
+        }
+
+        return opt;
+    }
+
+    public int optimizeColumnPartition(int i, int cluster, int object, int optimalCLuster) {
+
+        int opt = optimalCLuster;
+        updateContingencyTable(dataMatrix.get(object), columnClusters, cluster, i, false);
+        updatePartition(contingencyColumns, dataMatrix.get(object), cluster, i);
+        double newError = goodmanKruskal(contingencyRows, contingencyColumns, contingency);
+        if (newError < minErrorColumn) {
+            minErrorColumn = newError;
+            opt = i;
+            columnClusters.get(i).clear(object);
+            updateContingencyTable(dataMatrix.get(object), columnClusters, i, cluster, false);
+            updatePartition(contingencyColumns, dataMatrix.get(object), cluster, i);
+        }
+        return opt;
+    }
+
+
+    public void optimizePartition(List<BitSet> modifiablePartitions, boolean isRowPartition) {
+        Random rand = new Random();
+        // Randomly select a partition
+        int len = modifiablePartitions.size();
         int cluster = rand.nextInt(len);
-        int object = U.get(cluster).nextSetBit(0);
+
+        // Randomly select an object
+        int num = 1;
+        int object = -1;
+        for (int i = modifiablePartitions.get(cluster).nextSetBit(0); i != -1; i = modifiablePartitions.get(cluster).nextSetBit(i + 1)) {
+            if (rand.nextInt(num) == 0) {
+                object = i;
+            }
+            num++;
+        }
+        //System.out.println(object);
+        //int object = U.get(cluster).nextSetBit(0);
+        // Do nothing if the cluster is empty
         if (object < 0) return;
-        for(int i=0; i<len; i++) {
-            if( i != cluster) {
-                U.get(i).set(object);
-                U.get(cluster).clear(object);
-                List<List<Integer>> newContingency = null;
-                double newError = 0.0;
-                if( isRowPartition ) {
-                    newContingency = calculateContingencyTable(U, V);
-                    List<Integer> newContingencyCols = calculateContingencyCols();
-                    newError = goodmanKruskal(contingencyRows, newContingencyCols, newContingency);
-                    if(newError < minError) {
-                        minError = newError;
-                        contingencyColumns = newContingencyCols;
-                        contingency = newContingency;
-                    }
-                    else {
-                        U.get(i).clear(object);
-                        U.get(cluster).set(object);
-                    }
+
+        int optimalCluster = cluster;
+        modifiablePartitions.get(cluster).clear(object);
+        for (int i = 0; i < len; i++) {
+            if (i != cluster) {
+                modifiablePartitions.get(i).set(object);
+                if (isRowPartition) {
+                    optimalCluster = optimizeRowPartition(i, cluster, object, optimalCluster);
+                } else {
+                    optimalCluster = optimizeColumnPartition(i, cluster, object, optimalCluster);
                 }
-                else {
-                    newContingency = calculateContingencyTable(V, U);
-                    List<Integer> newContingencyRows = calculateContingencyRows();
-                    newError = goodmanKruskal(newContingencyRows, contingencyColumns, newContingency);
-                    if(newError < minError) {
-                        minError = newError;
-                        contingencyRows = newContingencyRows;
-                        contingency = newContingency;
-                    }
-                    else {
-                        U.get(i).clear(object);
-                        U.get(cluster).set(object);
-                    }
+                modifiablePartitions.get(i).clear(object);
+            }
+        }
+
+        // Check if error is minimum in empty cluster
+        int newCluster = 0;
+        if(isRowPartition) {
+            newCluster = addNewRowCluster();
+            optimalCluster = optimizeRowPartition(newCluster, cluster, object, optimalCluster);
+        }
+        else {
+            newCluster = addNewColCluster();
+            optimalCluster = optimizeColumnPartition(newCluster, cluster, object, optimalCluster);
+        }
+
+        System.out.println("before delete: " + modifiablePartitions.toString());
+        if(optimalCluster != newCluster) {
+            if(isRowPartition) {
+                removeEmptyRowCluster(rowClusters.size()-1);
+            }
+            else removeEmptyColumnCluster(columnClusters.size()-1);
+        }
+
+        System.out.println("after delete" + modifiablePartitions.toString());
+
+
+        if (optimalCluster != cluster) {
+            modifiablePartitions.get(optimalCluster).set(object);
+            if (isRowPartition) {
+                updateContingencyTable(dataMatrix.get(object), rowClusters, cluster, optimalCluster, true);
+                updatePartition(contingencyRows, dataMatrix.get(object), cluster, optimalCluster);
+            } else {
+                updateContingencyTable(dataMatrix.get(object), columnClusters, cluster, optimalCluster, false);
+                updatePartition(contingencyColumns, dataMatrix.get(object), cluster, optimalCluster);
+            }
+            if(modifiablePartitions.get(cluster).cardinality() == 0) {
+                if(isRowPartition) {
+                    System.out.println(cluster);
+                    removeEmptyRowCluster(cluster);
+                } else {
+                    removeEmptyColumnCluster(cluster);
                 }
             }
+        }
+        else {
+            modifiablePartitions.get(cluster).set(object);
         }
     }
 
     public double goodmanKruskal(List<Integer> U, List<Integer> V, List<List<Integer>> contingency) {
 
+//        if(U.size()!= contingency.size() || V.size()!= contingency.get(0).size()) {
+//            System.out.println("size mismatch");
+//            System.exit(1);
+//        }
         double eu = 0.0;
         double euv = 0.0;
-        for(int i=0; i < U.size(); i++) {
-            eu += (double) (contingencyTotal - U.get(i)) * U.get(i) / (double) contingencyTotal ;
-            for(int j=0; j < V.size(); j++) {
-                if(V.get(j) != 0) {
+        for (int i = 0; i < U.size(); i++) {
+            eu += (double) (contingencyTotal - U.get(i)) * U.get(i) / (double) contingencyTotal;
+            for (int j = 0; j < V.size(); j++) {
+                if (V.get(j) != 0) {
                     euv += (V.get(j) - contingency.get(i).get(j)) * contingency.get(i).get(j) / V.get(j);
                 }
             }
         }
 
-        return (eu - euv)/eu;
+        return (eu - euv) / eu;
+    }
+
+    public double goodmanKruskalRow() {
+        double eu = 0.0;
+        double euv = 0.0;
+        for(int i =0; i < contingencyRows.size(); i++) {
+            eu += (double) (contingencyTotal - contingencyRows.get(i)) * contingencyRows.get(i) / (double) contingencyTotal;
+            for (int j = 0; j < contingencyColumns.size(); j++) {
+                if (contingencyColumns.get(j) != 0) {
+                    euv += (contingencyColumns.get(j) - contingency.get(i).get(j)) * contingency.get(i).get(j) / contingencyColumns.get(j);
+                }
+            }
+        }
+        return  (eu - euv) / eu;
+    }
+
+    public double goodmanKruskalColumn() {
+        double eu = 0.0;
+        double euv = 0.0;
+        for(int i=0 ; i<contingencyColumns.size(); i++) {
+            eu += (double) (contingencyTotal - contingencyColumns.get(i)) * contingencyColumns.get(i) / (double) contingencyTotal;
+            for(int j=0; j<contingencyRows.size(); j++) {
+                if(contingencyRows.get(j) != 0) {
+                    euv += (contingencyRows.get(j) - contingency.get(j).get(i)) * contingency.get(j).get(i) / contingencyRows.get(j);
+                }
+            }
+        }
+        return  (eu - euv) / eu;
     }
 
     public List<BitSet> getRowClusters() {
