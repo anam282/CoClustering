@@ -41,5 +41,6 @@ public class TestGKC {
         TCoClust coclust = new TCoClust(schema, 100, 10, 10);
         coclust.runCoClust();
         coclust.printCoClusters();
+        BitSet test = new BitSet();
     }
 }
