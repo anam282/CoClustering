@@ -38,7 +38,7 @@ public class TestGKC {
 
         List<BitSet> schema = readFromFile("./dataset/matrix.txt");
         //System.out.println(schema.toString());
-        TCoClust coclust = new TCoClust(schema, 100, 10, 10);
+        TCoClust coclust = new TCoClust(schema, 500, 10, 10);
         coclust.runCoClust();
         coclust.printCoClusters();
         BitSet test = new BitSet();

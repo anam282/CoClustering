@@ -1,6 +1,5 @@
 package GoodmanKruskalCoCluster;
 
-import javax.swing.plaf.synth.SynthEditorPaneUI;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -25,7 +24,6 @@ public class TCoClust {
     double minErrorColumn;
 
     public TCoClust(List<BitSet> dataMatrix, int numOfIter, int numRows, int numColumns) {
-        //System.out.println(dataMatrix.toString());
         this.dataMatrix = dataMatrix;
         this.numOfIter = numOfIter;
         this.rowClusters = new ArrayList<>();
@@ -68,9 +66,6 @@ public class TCoClust {
             rowClusters.add(cloneRow);
         }
 
-
-        //System.out.println("initial row cluster: " + rowClusters.toString());
-        //System.out.println("initial col cluster: " + columnClusters.toString());
     }
 
     public List<List<Integer>> calculateContingencyTable(List<BitSet> rowClusters, List<BitSet> colClusters) {
@@ -81,27 +76,21 @@ public class TCoClust {
         }
 
         int r = 0;
-        //int c = 0;
         for (BitSet rowCluster : rowClusters) {
             for (BitSet colCluster : colClusters) {
                 int sum = 0;
-//                boolean and = true;
-//                boolean or = false;
+
                 for (int i = rowCluster.nextSetBit(0); i != -1; i = rowCluster.nextSetBit(i + 1)) {
                     for (int j = colCluster.nextSetBit(0); j != -1; j = colCluster.nextSetBit(j + 1)) {
-//                        and &= dataMatrix.get(i).get(j);
-//                        or |= dataMatrix.get(i).get(j);
                         if(dataMatrix.get(i).get(j)) {
                             sum++;
                         }
                     }
                 }
-                //if(and && or || !and && !or ) sum = 1;
                 newContingency.get(r).add(sum);
             }
             r++;
         }
-        //System.out.println(newContingency.toString());
         return newContingency;
     }
 
@@ -115,7 +104,6 @@ public class TCoClust {
             }
             newContingencyRows.add(rowSum);
         }
-        System.out.println(newContingencyRows.toString());
         return newContingencyRows;
     }
 
@@ -124,7 +112,6 @@ public class TCoClust {
             partitions.set(toPartitionNum, partitions.get(toPartitionNum) + object.cardinality());
             partitions.set(fromPartitionNum, partitions.get(fromPartitionNum) - object.cardinality());
         }
-        //System.out.println(partitions.toString());
     }
 
     public int addNewRowCluster(){
@@ -163,16 +150,6 @@ public class TCoClust {
     }
 
     public void updateContingencyTable(BitSet object, List<BitSet> partitions,int fromPartitionNum, int toPartitionNum, boolean isRowPartition) {
-//        if(isRowPartition)
-//            System.out.println("Row");
-//        else System.out.println("column");
-//        System.out.println("before update");
-//        System.out.println(contingency.toString());
-//        System.out.println(object.toString());
-//        System.out.println(fromPartitionNum);
-//        System.out.println(toPartitionNum);
-//        System.out.println(rowClusters);
-//        System.out.println(columnClusters);
         int i = 0;
         for (BitSet partition : partitions) {
             BitSet objectClone = (BitSet) object.clone();
@@ -187,8 +164,6 @@ public class TCoClust {
             }
             i++;
         }
-        //System.out.println("after update");
-        //System.out.println(contingency.toString());
     }
 
     public void calculateContingencyTotal() {
@@ -208,7 +183,6 @@ public class TCoClust {
                 newContingencyCols.set(j, newContingencyCols.get(j) + contingency.get(i).get(j));
             }
         }
-        System.out.println(newContingencyCols.toString());
         return newContingencyCols;
     }
 
@@ -244,8 +218,6 @@ public class TCoClust {
 
         int opt = optimalCLuster;
         BitSet objectCol = new BitSet();
-        //System.out.println("datamatrix");
-        //System.out.println(dataMatrix.toString());
         for(int j=0; j < dataMatrix.size(); j++) {
             if(dataMatrix.get(j).get(object)) {
                 objectCol.set(j);
@@ -281,11 +253,7 @@ public class TCoClust {
             }
             num++;
         }
-        //System.out.println(object);
-        //int object = U.get(cluster).nextSetBit(0);
-        // Do nothing if the cluster is empty
         if (object < 0) return;
-        //System.out.println(object);
         int optimalCluster = cluster;
         modifiablePartitions.get(cluster).clear(object);
         for (int i = 0; i < len; i++) {
@@ -311,15 +279,12 @@ public class TCoClust {
             optimalCluster = optimizeColumnPartition(newCluster, cluster, object, optimalCluster);
         }
 
-        //System.out.println("before delete: " + modifiablePartitions.toString());
         if(optimalCluster != newCluster) {
             if(isRowPartition) {
                 removeEmptyRowCluster(rowClusters.size()-1);
             }
             else removeEmptyColumnCluster(columnClusters.size()-1);
         }
-
-        //System.out.println("after delete" + modifiablePartitions.toString());
 
 
         if (optimalCluster != cluster) {
@@ -338,7 +303,6 @@ public class TCoClust {
             }
             if(modifiablePartitions.get(cluster).cardinality() == 0) {
                 if(isRowPartition) {
-                    //System.out.println(cluster);
                     removeEmptyRowCluster(cluster);
                 } else {
                     removeEmptyColumnCluster(cluster);
@@ -348,19 +312,10 @@ public class TCoClust {
         else {
             modifiablePartitions.get(cluster).set(object);
         }
-        System.out.println(minErrorRow);
-        System.out.println(minErrorColumn);
-        //System.out.println(contingencyColumns.toString());
-        //System.out.println(contingencyRows.toString());
-        //System.out.println(contingency.toString());
     }
 
     public double goodmanKruskal(List<Integer> U, List<Integer> V, List<List<Integer>> contingency) {
 
-//        if(U.size()!= contingency.size() || V.size()!= contingency.get(0).size()) {
-//            System.out.println("size mismatch");
-//            System.exit(1);
-//        }
         double eu = 0.0;
         double euv = 0.0;
         for (int i = 0; i < U.size(); i++) {
@@ -412,23 +367,7 @@ public class TCoClust {
     }
 
     public void printCoClusters() {
-//        for(BitSet rowCl: getRowClusters()) {
-//            if(rowCl.cardinality() == 0) continue;
-//            for(BitSet colCl : getColumnClusters()) {
-//
-//                System.out.println("RowCluster");
-//                for(int i=rowCl.nextSetBit(0); i!= -1; i = rowCl.nextSetBit(i+1)) {
-//                    System.out.print(i + " ");
-//                }
-//                System.out.println();
-//
-//                System.out.println("Support:");
-//                for(int i=colCl.nextSetBit(0); i!= -1; i = colCl.nextSetBit(i+1)) {
-//                    System.out.print(i + " ");
-//                }
-//                System.out.println();
-//            }
-//        }
+
         System.out.println(getColumnClusters().toString());
         System.out.println(getRowClusters().toString());
 
