@@ -202,7 +202,7 @@ public class TCoClust {
         updateContingencyTable(dataMatrix.get(object), columnClusters, cluster, i, true);
         updatePartition(contingencyRows, dataMatrix.get(object), cluster, i);
         double newError = goodmanKruskal(contingencyRows, contingencyColumns, contingency);
-        if (newError < minErrorRow) {
+        if (newError > minErrorRow) {
             minErrorRow = newError;
             opt = i;
         }
@@ -226,7 +226,7 @@ public class TCoClust {
         updateContingencyTable(objectCol, rowClusters,cluster, i, false);
         updatePartition(contingencyColumns, objectCol, cluster, i);
         double newError = goodmanKruskal(contingencyRows, contingencyColumns, contingency);
-        if (newError < minErrorColumn) {
+        if (newError > minErrorColumn) {
             minErrorColumn = newError;
             opt = i;
         }
@@ -368,11 +368,16 @@ public class TCoClust {
 
     public void printCoClusters() {
 
-        System.out.println(getColumnClusters().toString());
+        System.out.println("Contingency table");
+        System.out.println(contingency.toString());
         System.out.println(getRowClusters().toString());
+        System.out.println(getColumnClusters().toString());
 
+        int rowNum = 0;
         for(BitSet rowClust: rowClusters) {
+            int colNum = 0;
             for(BitSet colClust:columnClusters) {
+                if(contingency.get(rowNum).get(colNum++) == 0) continue;
                 for(int i=rowClust.nextSetBit(0); i!= -1; i = rowClust.nextSetBit(i+1)) {
                     for(int j=colClust.nextSetBit(0); j!=-1; j= colClust.nextSetBit(j+1)) {
                         if(dataMatrix.get(i).get(j))
@@ -384,6 +389,7 @@ public class TCoClust {
                 System.out.println();
             }
             System.out.println();
+            rowNum++;
         }
     }
 }
