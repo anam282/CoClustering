@@ -4,19 +4,18 @@ package biclique;
  * Created by a2shadab on 09/07/17.
  */
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.BitSet;
 
 public class BiClique {
-    Set<Integer> properties;
-    Set<Integer> subjects;
+    BitSet properties;
+    BitSet subjects;
 
     public BiClique(){
-        properties = new HashSet<>();
-        subjects = new HashSet<>();
+        properties = new BitSet();
+        subjects = new BitSet();
     }
 
-    public BiClique(Set<Integer> subjects, Set<Integer> properties) {
+    public BiClique(BitSet subjects, BitSet properties) {
         this.subjects = subjects;
         this.properties = properties;
     }

@@ -21,66 +21,60 @@ public class MaximalBicliques {
     }
 
     public void findAllBiCliques() {
-        List<Integer> P = new ArrayList<>();
-        for(int i=0; i<numProperties; i++){
-            P.add(i);
-        }
-        Set<Integer> L = new HashSet<>();
-        for(int i=0; i<numSubjects; i++) {
-            L.add(i);
-        }
-        findAllBiCliques(L, new HashSet<Integer>(),P, new HashSet<>());
+        BitSet P = new BitSet(numProperties);
+        P.set(0, numProperties);
+
+        BitSet L = new BitSet(numSubjects);
+        L.set(0, numSubjects);
+        findAllBiCliques(L, new BitSet(),P, new BitSet());
     }
 
-    public void findAllBiCliques(Set<Integer> L, Set<Integer> R, List<Integer> P, Set<Integer> Q) {
-        while(P.size() > 0) {
-            int p = P.get(0);
-            P.remove(0);
-            Set<Integer> Rdash = new HashSet<>();
-            for(int r:R){
-                Rdash.add(r);
-            }
-            Rdash.add(p);
+    public void findAllBiCliques(BitSet L, BitSet R, BitSet P, BitSet Q) {
+        while(P.cardinality() > 0) {
+            int p = P.nextSetBit(0);
+            P.clear(p);
+            BitSet Rdash = (BitSet)R.clone();
+            Rdash.set(p);
 
-            Set<Integer> Ldash = new HashSet<>();
-            for(int l:L) {
+            BitSet Ldash = new BitSet(numSubjects);
+            for(int l = L.nextSetBit(0); l != -1; l = L.nextSetBit(l+1)) {
                 if(graph.get(l).get(p)) {
-                    Ldash.add(l);
+                    Ldash.set(l);
                 }
             }
-            if(Ldash.size() == 0) continue;
-            List<Integer> Pdash = new ArrayList<>();
-            Set<Integer> Qdash = new HashSet<>();
+            if(Ldash.cardinality() == 0) continue;
+            BitSet Pdash = new BitSet(numProperties);
+            BitSet Qdash = new BitSet(numProperties);
 
             boolean isMaximal = true;
 
-            for (int v:Q) {
-                List<Integer> neighbours = new ArrayList<>();
-                for(int subject:Ldash) {
+            for (int v = Q.nextSetBit(0); v!=-1; v=Q.nextSetBit(v+1)) {
+                BitSet neighbours = new BitSet();
+                for(int subject = Ldash.nextSetBit(0); subject!=-1; subject = Ldash.nextSetBit(subject+1)) {
                     if(graph.get(subject).get(v)) {
-                        neighbours.add(subject);
+                        neighbours.set(subject);
                     }
                 }
-                if(neighbours.size() == Ldash.size()) {
+                if(neighbours.cardinality() == Ldash.cardinality()) {
                     isMaximal = false;
                     break;
                 }
-                else if(neighbours.size() > 0) {
-                    Qdash.add(v);
+                else if(neighbours.cardinality() > 0) {
+                    Qdash.set(v);
                 }
             }
             if(isMaximal) {
-                for(int v:P) {
-                    List<Integer> neighbours = new ArrayList<>();
-                    for (int l : Ldash) {
+                for(int v=P.nextSetBit(0); v!=-1; v=P.nextSetBit(v+1)) {
+                    BitSet neighbours = new BitSet();
+                    for (int l = Ldash.nextSetBit(0); l!=-1; l=Ldash.nextSetBit(l+1)) {
                         if (graph.get(l).get(v)) {
-                            neighbours.add(l);
+                            neighbours.set(l);
                         }
                     }
-                    if (neighbours.size() == Ldash.size()) {
-                        Rdash.add(v);
-                    } else if (neighbours.size() > 0) {
-                        Pdash.add(v);
+                    if (neighbours.cardinality() == Ldash.cardinality()) {
+                        Rdash.set(v);
+                    } else if (neighbours.cardinality() > 0) {
+                        Pdash.set(v);
                     }
                 }
                 System.out.println("biclique");
@@ -92,14 +86,14 @@ public class MaximalBicliques {
                     findAllBiCliques(Ldash, Rdash, Pdash, Qdash);
                 }
             }
-            Q.add(p);
+            Q.set(p);
         }
     }
 
-    public void printBicliques(Set<Integer> L, Set<Integer> R) {
+    public void printBicliques(BitSet L, BitSet R) {
 
-        for(int i:L) {
-            for(int j:R) {
+        for(int i=L.nextSetBit(0); i!=-1; i= L.nextSetBit(i+1)) {
+            for(int j=R.nextSetBit(0); j!=-1; j=R.nextSetBit(j+1)) {
                 if(graph.get(i).get(j)) {
                     System.out.print(1 + " ");
                 }
